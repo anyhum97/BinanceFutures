@@ -2,13 +2,13 @@
 using System.Threading;
 using System.IO;
 
-namespace BinanceFutures
+namespace PredictionModel
 {
 	public static class Logger
 	{
 		public static bool IsConsoleEnabled { get; set; } = true;
 		
-		private const string LogFilePath = "BinanceFutures.txt";
+		private const string LogFilePath = "PredictionModel.txt";
 		
 		private const long MaxFileLength = 67108864;
 		
@@ -63,4 +63,3 @@ namespace BinanceFutures
 		}
 	}
 }
-

@@ -1,17 +1,8 @@
 ﻿using System;
-using System.Text;
 using System.Collections.Generic;
-using System.IO;
-
-using CryptoExchange.Net.Objects;
-
-using Binance.Net.Objects.Futures.FuturesData;
-using Binance.Net.Objects.Futures.MarketData;
-using Binance.Net.Objects.Futures.MarketStream;
 
 using Binance.Net;
 using Binance.Net.Enums;
-using TradeBot;
 
 namespace BinanceFutures
 {
