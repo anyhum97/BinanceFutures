@@ -77,6 +77,11 @@ namespace PredictionModel
 				return;
 			}
 
+			if(File.Exists(path2))
+			{
+				File.Delete(path2);
+			}
+
 			const int start = 1;
 
 			int stop = History.Count - Window - delay;
@@ -214,6 +219,11 @@ namespace PredictionModel
 				Console.WriteLine("Can not Read Trade History");
 				Console.ReadKey();
 				return;
+			}
+
+			if(File.Exists(path2))
+			{
+				File.Delete(path2);
 			}
 
 			const int start = 1;
@@ -356,20 +366,43 @@ namespace PredictionModel
 
 		static void Main()
 		{
-			string directory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-			
-			directory += "\\PredictionModels\\";
-			
-			if(!Directory.Exists(directory))
-			{
-				Directory.CreateDirectory(directory);
-			}
-
 			//LoadHistory();
 
 			//TestShortPredictionModel("history.txt", 2048, 10, 0.999m);
 			
-			GetShortPredictionModel("history.txt", directory + "short1.xml", 10, 0.999m);
+			decimal percent = 0.001m;
+			
+			for(int i=1; i<=10; ++i)
+			{
+				int delay = 5;
+
+				if(i == 2)
+				{
+					delay = 10;
+				}
+
+				if(i == 3 || i == 4 || i == 5 || i == 6)
+				{
+					delay = 15;
+				}
+
+				if(i == 7 || i == 8 || i == 9)
+				{
+					delay = 20;
+				}
+
+				if(i == 10)
+				{
+					delay = 30;
+				}
+
+				GetLongPredictionModel("history.txt", "long" + i + ".xml", delay, 1.0m + percent);
+
+				GetShortPredictionModel("history.txt", "short" + i + ".xml", delay, 1.0m - percent);
+				
+				percent += 0.001m;
+			}
+
 		}
 	}
 }

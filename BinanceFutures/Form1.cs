@@ -1,9 +1,10 @@
 ﻿using System;
-using System.Drawing;
-using System.Globalization;
-using System.IO;
-using System.Threading;
+using System.Collections.Generic;
 using System.Windows.Forms;
+using System.Globalization;
+using System.Threading;
+using System.Drawing;
+using System.IO;
 
 using SharpLearning.RandomForest.Models;
 
@@ -18,6 +19,8 @@ namespace BinanceFutures
 		private ClassificationForestModel[] LongModels;
 		private ClassificationForestModel[] ShortModels;
 
+		private List<TradeInformation> History;
+
 		private static Bitmap[] ColoredImages;
 
 		private PictureBox[] LongImages;
@@ -29,7 +32,7 @@ namespace BinanceFutures
 		private bool[] IsLong;
 		private bool[] IsShort;
 
-		public const string Version = "0.12";
+		public const string Version = "0.22";
 
 		public bool SuccessfullyLoaded { get; private set; }
 
@@ -98,7 +101,7 @@ namespace BinanceFutures
 
 			SuccessfullyLoaded = true;
 
-			for(int i=0; i<1; ++i)
+			for(int i=0; i<Levels; ++i)
 			{
 				string path = string.Format("long{0}.xml", i+1);
 
@@ -123,7 +126,7 @@ namespace BinanceFutures
 				}
 			}
 			
-			for(int i=0; i<1; ++i)
+			for(int i=0; i<Levels; ++i)
 			{
 				string path = string.Format("short{0}.xml", i+1);
 
@@ -187,13 +190,50 @@ namespace BinanceFutures
 
 		private void UpdateTradeHistory()
 		{
-			if(Binance.GetTradeHistory(Count, out var history))
+			if(Binance.GetTradeHistory(Count+1, out var history))
 			{
-				BasePrice = history[Count-1].Average;
+				BasePrice = history[Count].Average;
+
+				History = history;
 			}
 			else
 			{
 				BasePrice = 0.0m;
+			}
+		}
+
+		private void UpdatePrediction()
+		{
+
+			try
+			{
+				if(History != null)
+				{
+					if(History.Count == Count+1)
+					{
+						for(int i=0; i<Levels; ++i)
+						{
+							double[] inputs = new double[Count];
+							
+							for(int j=0; j<Count; ++j)
+							{
+								inputs[j] = (double)(History[j+1].Average - History[j].Average);
+							}
+
+							double output1 = LongModels[i].Predict(inputs);
+
+							double output2 = ShortModels[i].Predict(inputs);
+
+							IsLong[i] = output1 == 1.0;
+
+							IsShort[i] = output2 == 1.0;
+						}
+					}
+				}				
+			}
+			catch(Exception exception)
+			{
+				Logger.Write("UpdatePrediction: " + exception.Message);
 			}
 		}
 
@@ -237,6 +277,7 @@ namespace BinanceFutures
 		{
 			UpdateColors();
 			UpdateWindowTitle();
+			UpdatePrediction();
 		}
 
 		private void TimerTick2(object sender, EventArgs e)
