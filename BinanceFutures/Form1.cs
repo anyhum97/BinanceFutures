@@ -10,20 +10,24 @@ namespace BinanceFutures
 	{
 		private const int States = 3;
 		private const int Levels = 10;
+		private const int Count = 5;
 
-		private PictureBox[] LongImages = new PictureBox[Levels];
-		private PictureBox[] ShortImages = new PictureBox[Levels];
+		private static Bitmap[] ColoredImages;
 
-		private static Bitmap[] ColoredImages = new Bitmap[States];
+		private PictureBox[] LongImages;
+		private PictureBox[] ShortImages;
 
-		private bool[] IsLong = new bool[Levels];
-		private bool[] IsShort = new bool[Levels];
+		private Thread CurrentPriceThread;
+		private Thread TradeHistoryThread;
+
+		private bool[] IsLong;
+		private bool[] IsShort;
+
+		public const string Version = "0.12";
 
 		public decimal CurrentPrice { get; private set; }
 
-		public decimal StartPrice { get; private set; }
-
-		private Thread CurrentPriceThread = null;
+		public decimal BasePrice { get; private set; }
 
 		public Form1()
 		{
@@ -34,6 +38,7 @@ namespace BinanceFutures
 		private void InitializeObjects()
 		{
 			PreparePictures();
+			PreparePredictionModel();
 			UpdateColors();
 		}
 
@@ -75,6 +80,12 @@ namespace BinanceFutures
 			};
 		}
 
+		private void PreparePredictionModel()
+		{
+			IsLong = new bool[Levels];
+			IsShort = new bool[Levels];
+		}
+
 		private void UpdateColors()
 		{
 			for(int i=0; i<Levels; ++i)
@@ -104,11 +115,22 @@ namespace BinanceFutures
 			if(Binance.GetCurrentPrice(out decimal price))
 			{
 				CurrentPrice = price;
-				StartPrice = price;
 			}
 			else
 			{
 				CurrentPrice = 0.0m;
+			}
+		}
+
+		private void UpdateTradeHistory()
+		{
+			if(Binance.GetTradeHistory(Count, out var history))
+			{
+				BasePrice = history[Count-1].Average;
+			}
+			else
+			{
+				BasePrice = 0.0m;
 			}
 		}
 
@@ -123,16 +145,28 @@ namespace BinanceFutures
 			CurrentPriceThread.IsBackground = false;
 			CurrentPriceThread.Start();
 		}
+		
+		private void UpdateTradeHistoryThread()
+		{
+			if(TradeHistoryThread != null)
+			{
+				TradeHistoryThread.Abort();
+			}
+
+			TradeHistoryThread = new Thread(UpdateTradeHistory);
+			TradeHistoryThread.IsBackground = false;
+			TradeHistoryThread.Start();
+		}
 
 		private void UpdateWindowTitle()
 		{
 			if(CurrentPrice > 0.0m)
 			{
-				Text = string.Format("Binance Futures 0.11 ({0}) - {1}", Binance.Symbol, Format(CurrentPrice, 2));
+				Text = string.Format("Binance Futures {0} ({1}) - {2}", Version, Binance.Symbol, Format(CurrentPrice, 2));
 			}
 			else
 			{
-				Text = string.Format("Binance Futures 0.11 ({0})", Binance.Symbol);
+				Text = string.Format("Binance Futures {0} ({1})", Version, Binance.Symbol);
 			}
 		}
 
@@ -145,106 +179,128 @@ namespace BinanceFutures
 		private void TimerTick2(object sender, EventArgs e)
 		{
 			UpdateCurrentPriceThread();
+			UpdateTradeHistoryThread();
+		}
+
+		private void SetClipboardPrice(decimal factor)
+		{
+			if(BasePrice > 0.0m)
+			{
+				if(factor >= 0.99m && factor <= 1.01m)
+				{
+					decimal target = factor * BasePrice;
+
+					Clipboard.SetText(Format(target, 2));
+				}
+				else
+				{
+					Clipboard.SetText("");
+				}
+			}
+			else
+			{
+				Clipboard.SetText("");
+			}
 		}
 
 		private void PictureClick1(object sender, EventArgs e)
 		{
-			Clipboard.SetText(Format(1.001m*StartPrice, 2));
+			SetClipboardPrice(1.001m);
 		}
 
 		private void PictureClick2(object sender, EventArgs e)
 		{
-			Clipboard.SetText(Format(1.002m*StartPrice, 2));
+			SetClipboardPrice(1.002m);
 		}
 
 		private void PictureClick3(object sender, EventArgs e)
 		{
-			Clipboard.SetText(Format(1.003m*StartPrice, 2));
+			SetClipboardPrice(1.003m);
 		}
 
 		private void PictureClick4(object sender, EventArgs e)
 		{
-			Clipboard.SetText(Format(1.004m*StartPrice, 2));
+			SetClipboardPrice(1.004m);
 		}
 
 		private void PictureClick5(object sender, EventArgs e)
 		{
-			Clipboard.SetText(Format(1.005m*StartPrice, 2));
+			SetClipboardPrice(1.005m);
 		}
 
 		private void PictureClick6(object sender, EventArgs e)
 		{
-			Clipboard.SetText(Format(1.006m*StartPrice, 2));
+			SetClipboardPrice(1.006m);
 		}
 
 		private void PictureClick7(object sender, EventArgs e)
 		{
-			Clipboard.SetText(Format(1.007m*StartPrice, 2));
+			SetClipboardPrice(1.007m);
 		}
 
 		private void PictureClick8(object sender, EventArgs e)
 		{
-			Clipboard.SetText(Format(1.008m*StartPrice, 2));
+			SetClipboardPrice(1.008m);
 		}
 
 		private void PictureClick9(object sender, EventArgs e)
 		{
-			Clipboard.SetText(Format(1.009m*StartPrice, 2));
+			SetClipboardPrice(1.009m);
 		}
 
 		private void PictureClick10(object sender, EventArgs e)
 		{
-			Clipboard.SetText(Format(1.010m*StartPrice, 2));
+			SetClipboardPrice(1.010m);
 		}
 		
 		private void PictureClick11(object sender, EventArgs e)
 		{
-			Clipboard.SetText(Format(0.999m*StartPrice, 2));
+			SetClipboardPrice(0.999m);
 		}
 
 		private void PictureClick12(object sender, EventArgs e)
 		{
-			Clipboard.SetText(Format(0.998m*StartPrice, 2));
+			SetClipboardPrice(0.998m);
 		}
 
 		private void PictureClick13(object sender, EventArgs e)
 		{
-			Clipboard.SetText(Format(0.997m*StartPrice, 2));
+			SetClipboardPrice(0.997m);
 		}
 
 		private void PictureClick14(object sender, EventArgs e)
 		{
-			Clipboard.SetText(Format(0.996m*StartPrice, 2));
+			SetClipboardPrice(0.996m);
 		}
 
 		private void PictureClick15(object sender, EventArgs e)
 		{
-			Clipboard.SetText(Format(0.995m*StartPrice, 2));
+			SetClipboardPrice(0.995m);
 		}
 
 		private void PictureClick16(object sender, EventArgs e)
 		{
-			Clipboard.SetText(Format(0.994m*StartPrice, 2));
+			SetClipboardPrice(0.994m);
 		}
 
 		private void PictureClick17(object sender, EventArgs e)
 		{
-			Clipboard.SetText(Format(0.993m*StartPrice, 2));
+			SetClipboardPrice(0.993m);
 		}
 
 		private void PictureClick18(object sender, EventArgs e)
 		{
-			Clipboard.SetText(Format(0.992m*StartPrice, 2));
+			SetClipboardPrice(0.992m);
 		}
 
 		private void PictureClick19(object sender, EventArgs e)
 		{
-			Clipboard.SetText(Format(0.991m*StartPrice, 2));
+			SetClipboardPrice(0.991m);
 		}
 
 		private void PictureClick20(object sender, EventArgs e)
 		{
-			Clipboard.SetText(Format(0.990m*StartPrice, 2));
+			SetClipboardPrice(0.990m);
 		}
 
 		private static Bitmap GetBitmap(int side, int border, Color color)
