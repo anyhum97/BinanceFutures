@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Drawing;
 using System.Globalization;
+using System.IO;
 using System.Threading;
 using System.Windows.Forms;
+
+using SharpLearning.RandomForest.Models;
 
 namespace BinanceFutures
 {
@@ -11,6 +14,9 @@ namespace BinanceFutures
 		private const int States = 3;
 		private const int Levels = 10;
 		private const int Count = 5;
+
+		private ClassificationForestModel[] LongModels;
+		private ClassificationForestModel[] ShortModels;
 
 		private static Bitmap[] ColoredImages;
 
@@ -24,6 +30,8 @@ namespace BinanceFutures
 		private bool[] IsShort;
 
 		public const string Version = "0.12";
+
+		public bool SuccessfullyLoaded { get; private set; }
 
 		public decimal CurrentPrice { get; private set; }
 
@@ -84,6 +92,61 @@ namespace BinanceFutures
 		{
 			IsLong = new bool[Levels];
 			IsShort = new bool[Levels];
+
+			LongModels = new ClassificationForestModel[Levels];
+			ShortModels = new ClassificationForestModel[Levels];
+
+			SuccessfullyLoaded = true;
+
+			for(int i=0; i<1; ++i)
+			{
+				string path = string.Format("long{0}.xml", i+1);
+
+				if(File.Exists(path))
+				{
+					try
+					{
+						LongModels[i] = ClassificationForestModel.Load(() => new StreamReader(path));
+					}
+					catch(Exception exception)
+					{
+						MessageBox.Show("Произошла ошибка при загрузке файла \"" + path + "\"\n" + exception.Message);
+
+						SuccessfullyLoaded = false;
+					}
+				}
+				else
+				{
+					MessageBox.Show("Не удалось загрузить файл \"" + path + "\"");
+
+					SuccessfullyLoaded = false;
+				}
+			}
+			
+			for(int i=0; i<1; ++i)
+			{
+				string path = string.Format("short{0}.xml", i+1);
+
+				if(File.Exists(path))
+				{
+					try
+					{
+						ShortModels[i] = ClassificationForestModel.Load(() => new StreamReader(path));
+					}
+					catch(Exception exception)
+					{
+						MessageBox.Show("Произошла ошибка при загрузке файла \"" + path + "\"\n" + exception.Message);
+
+						SuccessfullyLoaded = false;
+					}
+				}
+				else
+				{
+					MessageBox.Show("Не удалось загрузить файл \"" + path + "\"");
+
+					SuccessfullyLoaded = false;
+				}
+			}
 		}
 
 		private void UpdateColors()
