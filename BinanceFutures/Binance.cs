@@ -52,8 +52,11 @@ namespace BinanceFutures
 
 				BinanceClient tradeClient = new BinanceClient();
 
-				DateTime start = DateTime.Now.AddMinutes(-1-count).ToUniversalTime();
-				DateTime stop = DateTime.Now.AddMinutes(-1).ToUniversalTime();
+				//DateTime start = DateTime.Now.AddMinutes(-1-count).ToUniversalTime();
+				//DateTime stop = DateTime.Now.AddMinutes(-1).ToUniversalTime();
+
+				DateTime start = DateTime.Now.AddMinutes(-count).ToUniversalTime();
+				DateTime stop = DateTime.Now.ToUniversalTime();
 
 				var responce = tradeClient.FuturesUsdt.Market.GetKlines(Symbol, KlineInterval.OneMinute, start, stop);
 				

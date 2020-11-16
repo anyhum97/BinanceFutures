@@ -12,7 +12,9 @@ namespace PredictionModel
 	{
 		public const string Symbol = "BTCUSDT";
 
-		public const int Window = 5;
+		public const int Count = 5;
+
+		public const int Window = 30;
 
 		private static List<TradeInformation> History = new List<TradeInformation>();
 
@@ -37,17 +39,24 @@ namespace PredictionModel
 		private static bool IsLong(List<TradeInformation> history, int index, int delay, decimal percent)
 		{
 			decimal start = history[index].Average;
+			
+			decimal target = (1.0m + percent)*start;
+			
+			decimal lower = (1.0m - 0.5m*percent)*start;
 
-			decimal target = percent*start;
-
-			for(int i=index+1; i<index+delay; ++i)
+			for(int i=index+1; i<index+1+delay; ++i)
 			{
-				if(history[i].High >= target)
+				if(0.5m*(history[i].Average + history[i].High) >= target)
 				{
 					return true;
 				}
-			}
 
+				if(0.5m*(history[i].Average + history[i].Low) <= lower)
+				{
+					return false;
+				}
+			}
+			
 			return false;
 		}
 		
@@ -55,17 +64,36 @@ namespace PredictionModel
 		{
 			decimal start = history[index].Average;
 
-			decimal target = percent*start;
+			decimal target = (1.0m - percent)*start;
+			
+			decimal upper = (1.0m + 0.5m*percent)*start;
 
-			for(int i=index+1; i<index+delay; ++i)
+			for(int i=index+1; i<index+1+delay; ++i)
 			{
-				if(history[i].Low <= target)
+				if(0.5m*(history[i].Average + history[i].Low) <= target)
 				{
 					return true;
+				}
+				
+				if(0.5m*(history[i].Average + history[i].High) >= upper)
+				{
+					return false;
 				}
 			}
 
 			return false;
+		}
+
+		private static decimal GetDelta(List<TradeInformation> history, int index, int window)
+		{
+			decimal delta = 0.0m;
+
+			for(int i=index-window; i<index; ++i)
+			{
+				delta += history[i+1].Average - history[i].Average;
+			}
+
+			return delta;
 		}
 
 		private static void GetLongPredictionModel(string path1, string path2, int delay, decimal percent)
@@ -84,7 +112,7 @@ namespace PredictionModel
 
 			const int start = 1;
 
-			int stop = History.Count - Window - delay;
+			int stop = History.Count - Count - delay;
 
 			int count = stop - start;
 
@@ -94,11 +122,11 @@ namespace PredictionModel
 
 			for(int i=0; i<count; ++i)
 			{
-				inputs[i] = new double[Window];
+				inputs[i] = new double[Count];
 
 				int index = start+i;
 
-				for(int j=0; j<Window; ++j)
+				for(int j=0; j<Count; ++j)
 				{
 					inputs[i][j] = (double)(History[index+j].Average-History[index+j-1].Average);
 				}
@@ -127,7 +155,7 @@ namespace PredictionModel
 
 			int start = 1;
 
-			int stop = History.Count - Window - delay;
+			int stop = History.Count - Count - delay;
 
 			int count1 = stop - start - test;
 
@@ -148,11 +176,11 @@ namespace PredictionModel
 
 			for(int i=0; i<count1; ++i)
 			{
-				inputs1[i] = new double[Window];
+				inputs1[i] = new double[Count];
 
 				int index = start+i;
 
-				for(int j=0; j<Window; ++j)
+				for(int j=0; j<Count; ++j)
 				{
 					inputs1[i][j] = (double)(History[index+j].Average-History[index+j-1].Average);
 				}
@@ -165,11 +193,11 @@ namespace PredictionModel
 
 			for(int i=count1; i<count1+count2; ++i)
 			{
-				inputs2[i-count1] = new double[Window];
+				inputs2[i-count1] = new double[Count];
 
 				int index = start+i;
 
-				for(int j=0; j<Window; ++j)
+				for(int j=0; j<Count; ++j)
 				{
 					inputs2[i-count1][j] = (double)(History[index+j].Average-History[index+j-1].Average);
 				}
@@ -228,7 +256,7 @@ namespace PredictionModel
 
 			const int start = 1;
 
-			int stop = History.Count - Window - delay;
+			int stop = History.Count - Count - delay;
 
 			int count = stop - start;
 
@@ -238,11 +266,11 @@ namespace PredictionModel
 
 			for(int i=0; i<count; ++i)
 			{
-				inputs[i] = new double[Window];
+				inputs[i] = new double[Count];
 
 				int index = start+i;
 
-				for(int j=0; j<Window; ++j)
+				for(int j=0; j<Count; ++j)
 				{
 					inputs[i][j] = (double)(History[index+j].Average-History[index+j-1].Average);
 				}
@@ -271,7 +299,7 @@ namespace PredictionModel
 
 			int start = 1;
 
-			int stop = History.Count - Window - delay;
+			int stop = History.Count - Count - delay;
 
 			int count1 = stop - start - test;
 
@@ -292,11 +320,11 @@ namespace PredictionModel
 
 			for(int i=0; i<count1; ++i)
 			{
-				inputs1[i] = new double[Window];
+				inputs1[i] = new double[Count];
 
 				int index = start+i;
 
-				for(int j=0; j<Window; ++j)
+				for(int j=0; j<Count; ++j)
 				{
 					inputs1[i][j] = (double)(History[index+j].Average-History[index+j-1].Average);
 				}
@@ -309,11 +337,11 @@ namespace PredictionModel
 
 			for(int i=count1; i<count1+count2; ++i)
 			{
-				inputs2[i-count1] = new double[Window];
+				inputs2[i-count1] = new double[Count];
 
 				int index = start+i;
 
-				for(int j=0; j<Window; ++j)
+				for(int j=0; j<Count; ++j)
 				{
 					inputs2[i-count1][j] = (double)(History[index+j].Average-History[index+j-1].Average);
 				}
@@ -396,9 +424,9 @@ namespace PredictionModel
 					delay = 30;
 				}
 
-				GetLongPredictionModel("history.txt", "long" + i + ".xml", delay, 1.0m + percent);
+				//GetLongPredictionModel("history.txt", "long" + i + ".xml", delay, percent);
 
-				GetShortPredictionModel("history.txt", "short" + i + ".xml", delay, 1.0m - percent);
+				GetShortPredictionModel("history.txt", "short" + i + ".xml", delay, percent);
 				
 				percent += 0.001m;
 			}
