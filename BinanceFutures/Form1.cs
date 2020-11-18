@@ -7,6 +7,7 @@ using System.Drawing;
 using System.IO;
 
 using SharpLearning.RandomForest.Models;
+using System.Text;
 
 namespace BinanceFutures
 {
@@ -14,7 +15,7 @@ namespace BinanceFutures
 	{
 		private const int States = 3;
 		private const int Levels = 10;
-		private const int Count = 5;
+		private const int Count = 31;
 
 		private ClassificationForestModel[] LongModels;
 		private ClassificationForestModel[] ShortModels;
@@ -101,10 +102,14 @@ namespace BinanceFutures
 
 			SuccessfullyLoaded = true;
 
+			StringBuilder stringBuilder = new StringBuilder();
+
+			stringBuilder.Append("Произошли ошибки во время загрузки файлов:\n\n");
+
 			for(int i=0; i<Levels; ++i)
 			{
 				string path = string.Format("long{0}.xml", i+1);
-
+				
 				if(File.Exists(path))
 				{
 					try
@@ -113,15 +118,15 @@ namespace BinanceFutures
 					}
 					catch(Exception exception)
 					{
-						MessageBox.Show("Произошла ошибка при загрузке файла \"" + path + "\"\n" + exception.Message);
-
+						stringBuilder.Append("\"" + path + "\" - " + exception.Message + "\n");
+						
 						SuccessfullyLoaded = false;
 					}
 				}
 				else
 				{
-					MessageBox.Show("Не удалось загрузить файл \"" + path + "\"");
-
+					stringBuilder.Append("\"" + path + "\" (файл отсутствует)\n");
+					
 					SuccessfullyLoaded = false;
 				}
 			}
@@ -129,7 +134,7 @@ namespace BinanceFutures
 			for(int i=0; i<Levels; ++i)
 			{
 				string path = string.Format("short{0}.xml", i+1);
-
+				
 				if(File.Exists(path))
 				{
 					try
@@ -138,17 +143,22 @@ namespace BinanceFutures
 					}
 					catch(Exception exception)
 					{
-						MessageBox.Show("Произошла ошибка при загрузке файла \"" + path + "\"\n" + exception.Message);
-
+						stringBuilder.Append("\"" + path + "\"\n" + exception.Message + "\n");
+				
 						SuccessfullyLoaded = false;
 					}
 				}
 				else
 				{
-					MessageBox.Show("Не удалось загрузить файл \"" + path + "\"");
-
+					stringBuilder.Append("\"" + path + "\" (файл отсутствует)\n");
+				
 					SuccessfullyLoaded = false;
 				}
+			}
+
+			if(!SuccessfullyLoaded)
+			{
+				MessageBox.Show(stringBuilder.ToString());
 			}
 		}
 
@@ -190,9 +200,9 @@ namespace BinanceFutures
 
 		private void UpdateTradeHistory()
 		{
-			if(Binance.GetTradeHistory(Count+1, out var history))
+			if(Binance.GetTradeHistory(Count, out var history))
 			{
-				BasePrice = history[Count].Average;
+				BasePrice = history[Count-1].Average;
 
 				History = history;
 			}
@@ -202,32 +212,56 @@ namespace BinanceFutures
 			}
 		}
 
+		private static double GetDelta(List<TradeInformation> history, int index, int window)
+		{
+			decimal delta = 0.0m;
+
+			for(int i=index-window; i<index; ++i)
+			{
+				delta += history[i+1].Average - history[i].Average;
+			}
+
+			return (double)delta;
+		}
+
 		private void UpdatePrediction()
 		{
-
 			try
 			{
 				if(History != null)
 				{
-					if(History.Count == Count+1)
+					for(int i=0; i<Levels; ++i)
 					{
-						for(int i=0; i<Levels; ++i)
+						int index = History.Count - 1;
+
+						double[] inputs = new double[9]
 						{
-							double[] inputs = new double[Count];
-							
-							for(int j=0; j<Count; ++j)
-							{
-								inputs[j] = (double)(History[j+1].Average - History[j].Average);
-							}
+							(double)(History[index-2].Average-History[index-3].Average),
+							(double)(History[index-1].Average-History[index-2].Average),
+							(double)(History[index-0].Average-History[index-1].Average),
 
+							(double)(History[index-1].High-History[index-1].Low),
+							(double)(History[index-0].High-History[index-0].Low),
+
+							GetDelta(History, index, 15),
+							GetDelta(History, index, 10),
+							GetDelta(History, index, 8),
+							GetDelta(History, index, 4),
+						};
+
+						if(LongModels[i] != null)
+						{
 							double output1 = LongModels[i].Predict(inputs);
-
-							double output2 = ShortModels[i].Predict(inputs);
-
+							
 							IsLong[i] = output1 == 1.0;
-
-							IsShort[i] = output2 == 1.0;
 						}
+						
+						if(ShortModels[i] != null)
+						{
+							double output2 = ShortModels[i].Predict(inputs);
+							
+							IsShort[i] = output2 == 1.0;
+						}							
 					}
 				}				
 			}
