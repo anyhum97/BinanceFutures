@@ -53,7 +53,7 @@ namespace PredictionModel
 
 							foreach(var record in page.Data)
 							{
-								history.Add(new TradeInformation(record.CloseTime.ToLocalTime(), record.Low, record.High));
+								history.Add(new TradeInformation(record.CloseTime.ToLocalTime(), record.Low, record.High, record.BaseVolume));
 							}
 
 							success = true;
@@ -88,7 +88,7 @@ namespace PredictionModel
 						{
 							foreach(var record in page.Data)
 							{
-								history.Add(new TradeInformation(record.CloseTime.ToLocalTime(), record.Low, record.High));
+								history.Add(new TradeInformation(record.CloseTime.ToLocalTime(), record.Low, record.High, record.BaseVolume));
 							}
 
 							success = true;
